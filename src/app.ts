@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 
 import authRouter from './routers/authRouter';
+import trainRouter from './routers/trainRouter';
 
 import AppError from './utils/AppError';
 import globalErrorHandler from './controllers/errorController';
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/trains', trainRouter);
 
 app.all('*', (req: Request, res: Response, next: NextFunction) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
