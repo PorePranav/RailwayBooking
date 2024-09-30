@@ -7,7 +7,7 @@ process.on('uncaughtException', (err: Error) => {
   process.exit(1);
 });
 
-dotenv.config({ path: './config.env' });
+dotenv.config({ path: './.env' });
 
 const port: number = parseInt(process.env.PORT as string, 10) || 3000;
 
