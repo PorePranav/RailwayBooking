@@ -11,6 +11,13 @@ const createTrainSchema = z.object({
   totalSeats: z.number({ required_error: 'Seat count is required' }),
 });
 
+const updateTrainSchema = z.object({
+  name: z.string().optional(),
+  source: z.string().optional(),
+  destination: z.string().optional(),
+  totalSeats: z.number().optional(),
+});
+
 const normalizeString = (str: string) => str.trim().toLowerCase();
 
 export const createTrain = catchAsync(
@@ -65,6 +72,66 @@ export const getTrain = catchAsync(
     res.status(200).json({
       status: 'success',
       data: fetchedTrains,
+    });
+  }
+);
+
+export const updateTrain = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const trainId = parseInt(req.params.id);
+    const zodResult = updateTrainSchema.safeParse(req.body);
+    if (!zodResult.success) {
+      const errors = zodResult.error.errors.map((err) => err.message);
+      throw new AppError(errors.join(', '), 400);
+    }
+    const { name, source, destination, totalSeats } = zodResult.data;
+    const inputData: any = {};
+    if (name !== undefined) inputData.name = normalizeString(name);
+    if (source !== undefined) inputData.source = normalizeString(source);
+    if (destination !== undefined)
+      inputData.destination = normalizeString(destination);
+    if (totalSeats !== undefined) inputData.totalSeats = totalSeats;
+
+    if (
+      inputData.source &&
+      inputData.destination &&
+      inputData.source === inputData.destination
+    ) {
+      throw new AppError('Source and destination cannot be the same', 400);
+    }
+
+    if (
+      (inputData.source && !inputData.destination) ||
+      (!inputData.source && inputData.destination)
+    ) {
+      const existingTrain = await prisma.train.findUnique({
+        where: { id: trainId },
+        select: { source: true, destination: true },
+      });
+
+      if (existingTrain) {
+        const newSource = inputData.source || existingTrain.source;
+        const newDestination =
+          inputData.destination || existingTrain.destination;
+
+        if (newSource === newDestination) {
+          throw new AppError('Source and destination cannot be the same', 400);
+        }
+      }
+    }
+
+    const train = await prisma.train.update({
+      where: {
+        id: trainId,
+      },
+      data: inputData,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        train,
+      },
     });
   }
 );
