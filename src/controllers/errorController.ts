@@ -25,6 +25,18 @@ const sendErrorProd = (err: AppError, res: Response) => {
   }
 };
 
+const handleDuplicationErrorDB = (err: any) => {
+  if (err.code === 'P2002' && err.meta.target.includes('email')) {
+    return new AppError('Account with that email already exists', 400);
+  }
+};
+
+const handleJWTError = () =>
+  new AppError(`Invalid token. Please log in again!`, 401);
+
+const handleExpiredTokenError = () =>
+  new AppError(`Token expired. Please log in again`, 401);
+
 const errorHandler = (
   err: any,
   req: Request,
@@ -37,6 +49,9 @@ const errorHandler = (
   if (process.env.NODE_ENV === 'development') {
     sendErrorDev(err, res);
   } else {
+    if (err.code === 'P2002') err = handleDuplicationErrorDB(err);
+    if (err.name === 'JsonWebTokenError') err = handleJWTError();
+    if (err.name === 'TokenExpiredError') err = handleExpiredTokenError();
     sendErrorProd(err, res);
   }
 };
