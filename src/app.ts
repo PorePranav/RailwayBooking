@@ -8,6 +8,7 @@ import trainRouter from './routers/trainRouter';
 
 import AppError from './utils/AppError';
 import globalErrorHandler from './controllers/errorController';
+import bookingRouter from './routers/bookingRouter';
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use(cookieParser());
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/trains', trainRouter);
+app.use('/api/v1/bookings', bookingRouter);
 
 app.all('*', (req: Request, res: Response, next: NextFunction) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));

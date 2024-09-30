@@ -12,6 +12,7 @@ model User {
   email     String @unique
   password  String
   role      Role   @default(USER)
+  bookings  Booking[]
 }
 
 model Train {
@@ -20,6 +21,16 @@ model Train {
   source      String
   destination String
   totalSeats  Int
+  bookings    Booking[]
+}
+
+model Booking {
+  id     Int    @id @default(autoincrement())
+  userId Int
+  trainId Int
+  seatCount Int
+  user   User   @relation(fields: [userId], references: [id])
+  train Train @relation(fields: [trainId], references: [id])
 }
 
 enum Role {

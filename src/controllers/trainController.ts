@@ -44,8 +44,13 @@ export const createTrain = catchAsync(
 
 export const getTrain = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const source = normalizeString(req.params.source);
-    const destination = normalizeString(req.params.destination);
+    const source = normalizeString(req.query.source as string);
+    const destination = normalizeString(req.query.destination as string);
+
+    if (!source || !destination)
+      return next(
+        new AppError('Both source and destination are required', 400)
+      );
 
     if (source === destination)
       return next(
@@ -53,7 +58,6 @@ export const getTrain = catchAsync(
       );
 
     const query = { source, destination };
-
     const fetchedTrains = await prisma.train.findMany({
       where: query,
     });
