@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 
-import prisma from '../utils/prisma';
 import catchAsync from '../utils/catchAsync';
 import AppError from '../utils/AppError';
+import { bookingQueue } from '../queue/bullmq';
 
 const bookingSchema = z.object({
   trainId: z.number({ required_error: 'Train ID is required' }),
@@ -23,39 +23,55 @@ export const bookSeat = catchAsync(
     const userId = req.user?.id;
     if (!userId) return next(new AppError('User not logged in', 403));
 
-    const result = await prisma.$transaction(async (prisma) => {
-      const train = await prisma.train.findUnique({
-        where: {
-          id: trainId,
-        },
-        include: { bookings: true },
-      });
-
-      if (!train)
-        return next(new AppError(`Train with id ${trainId} not found`, 404));
-
-      const bookedSeats = train.bookings.reduce(
-        (acc, booking) => acc + booking.seatCount,
-        0
-      );
-
-      const availableSeats = train.totalSeats - bookedSeats;
-
-      if (availableSeats < seatCount)
-        return next(new AppError('Not enough seats available', 400));
-
-      return prisma.booking.create({
-        data: {
-          userId,
-          trainId,
-          seatCount,
-        },
-      });
+    const job = await bookingQueue.add('bookSeat', {
+      userId,
+      trainId,
+      seatCount,
     });
 
     res.status(201).json({
-      status: 'success',
-      data: result,
+      status: 'pending',
+      data: {
+        message: 'Booking request received and is being processed',
+        jobId: job.id,
+      },
     });
+  }
+);
+
+export const getBookingStatus = catchAsync(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const jobId = req.params.jobId;
+    const job = await bookingQueue.getJob(jobId);
+    if (!job) return next(new AppError('Job not found', 404));
+
+    const state = await job.getState();
+
+    if (state === 'completed') {
+      const result = await job.returnvalue;
+      res.status(200).json({
+        status: 'success',
+        data: {
+          message: 'Booking completed',
+          booking: result,
+        },
+      });
+    } else if (state === 'failed') {
+      const reason = await job.failedReason;
+      res.status(400).json({
+        status: 'failed',
+        data: {
+          message: 'Booking failed',
+          reason,
+        },
+      });
+    } else {
+      res.status(200).json({
+        status: 'pending',
+        data: {
+          message: 'Booking request received and is being processed',
+        },
+      });
+    }
   }
 );

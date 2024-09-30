@@ -31,9 +31,16 @@ model Booking {
   seatCount Int
   user   User   @relation(fields: [userId], references: [id])
   train Train @relation(fields: [trainId], references: [id])
+  status BookingStatus @default(PENDING)
 }
 
 enum Role {
   USER
   ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  BOOKED
+  CANCELLED
 }
