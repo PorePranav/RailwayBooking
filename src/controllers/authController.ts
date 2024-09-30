@@ -9,6 +9,11 @@ import AppError from '../utils/AppError';
 
 import { User } from '@prisma/client';
 
+type jwtPayload = {
+  userId: number;
+  role: string;
+};
+
 const signToken = (userId: number, role: string) => {
   return jwt.sign({ userId, role }, process.env.JWT_SECRET as string, {
     expiresIn: process.env.JWT_EXPIRES_IN as string,
@@ -92,3 +97,34 @@ export const loginController = catchAsync(
     createSendToken(user, 200, res);
   }
 );
+
+export const protect = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const token = req.cookies.jwt;
+    if (!token || token == null)
+      return next(new AppError('User is not logged in', 401));
+
+    const decoded = await jwt.verify(token, process.env.JWT_SECRET as string);
+
+    const fetchedUser = await prisma.user.findUnique({
+      where: {
+        id: (decoded as jwtPayload).userId,
+      },
+    });
+
+    if (!fetchedUser) return next(new AppError('User does not exist', 401));
+
+    req.user = fetchedUser as User;
+    next();
+  }
+);
+
+export const restrictTo = (...roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!roles.includes((req.user as User).role))
+      return next(
+        new AppError('You do not have permission to perform this action', 403)
+      );
+    next();
+  };
+};
