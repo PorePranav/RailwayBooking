@@ -35,18 +35,23 @@ const createSendToken = (user: User, statusCode: number, res: Response) => {
   });
 };
 
-const userSchema = z.object({
+const signupSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be atleast 6 characters long'),
 });
 
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string(),
+});
+
 export const signupController = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const zodResult = userSchema.safeParse(req.body);
+    const zodResult = signupSchema.safeParse(req.body);
 
     if (!zodResult.success) {
       const errors = zodResult.error.errors.map((err) => err.message);
-      throw new AppError(`Validation failed: ${errors.join(', ')}`, 400);
+      throw new AppError(errors.join(', '), 400);
     }
 
     const { email, password } = zodResult.data;
@@ -66,7 +71,14 @@ export const signupController = catchAsync(
 
 export const loginController = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { email, password } = req.body;
+    const zodResult = loginSchema.safeParse(req.body);
+
+    if (!zodResult.success) {
+      const errors = zodResult.error.errors.map((err) => err.message);
+      throw new AppError(errors.join(', '), 400);
+    }
+
+    const { email, password } = zodResult.data;
 
     const user = await prisma.user.findUnique({
       where: {
@@ -74,9 +86,8 @@ export const loginController = catchAsync(
       },
     });
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user || !(await bcrypt.compare(password, user.password)))
       throw new AppError('Invalid email or password', 401);
-    }
 
     createSendToken(user, 200, res);
   }
