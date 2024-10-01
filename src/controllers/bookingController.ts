@@ -31,10 +31,20 @@ export const bookSeat = catchAsync(
     const userId = req.user?.id;
     if (!userId) return next(new AppError('User not logged in', 403));
 
+    const newBooking = await prisma.booking.create({
+      data: {
+        userId,
+        trainId,
+        seatCount,
+        status: 'PENDING',
+      },
+    });
+
     const job = await bookingQueue.add('bookSeat', {
       userId,
       trainId,
       seatCount,
+      bookingId: newBooking.id,
     });
 
     res.status(201).json({
@@ -60,17 +70,7 @@ export const getBookingStatus = catchAsync(
       res.status(200).json({
         status: 'success',
         data: {
-          message: 'Booking completed',
           booking: result,
-        },
-      });
-    } else if (state === 'failed') {
-      const reason = await job.failedReason;
-      res.status(400).json({
-        status: 'failed',
-        data: {
-          message: 'Booking failed',
-          reason,
         },
       });
     } else {
