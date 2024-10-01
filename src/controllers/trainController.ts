@@ -76,6 +76,7 @@ export const getTrain = catchAsync(
           },
           where: {
             trainId: train.id,
+            status: 'BOOKED',
           },
         });
 
