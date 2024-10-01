@@ -43,4 +43,5 @@ enum BookingStatus {
   PENDING
   BOOKED
   CANCELLED
+  FAILED
 }

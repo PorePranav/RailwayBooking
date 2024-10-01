@@ -64,10 +64,30 @@ export const getTrain = catchAsync(
         new AppError('Source and destination cannot be the same', 400)
       );
 
-    const query = { source, destination };
-    const fetchedTrains = await prisma.train.findMany({
-      where: query,
+    const trains = await prisma.train.findMany({
+      where: { source, destination },
     });
+
+    const fetchedTrains = await Promise.all(
+      trains.map(async (train) => {
+        const bookedSeats = await prisma.booking.aggregate({
+          _sum: {
+            seatCount: true,
+          },
+          where: {
+            trainId: train.id,
+          },
+        });
+
+        const totalSeats = train.totalSeats;
+        const availableSeats = totalSeats - (bookedSeats._sum.seatCount || 0);
+
+        return {
+          ...train,
+          availableSeats,
+        };
+      })
+    );
 
     res.status(200).json({
       status: 'success',

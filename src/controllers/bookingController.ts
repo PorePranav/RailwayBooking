@@ -4,6 +4,7 @@ import { z } from 'zod';
 import catchAsync from '../utils/catchAsync';
 import AppError from '../utils/AppError';
 import { bookingQueue } from '../queue/bullmq';
+import prisma from '../utils/prisma';
 
 const bookingSchema = z.object({
   trainId: z.number({ required_error: 'Train ID is required' }),
@@ -19,6 +20,13 @@ export const bookSeat = catchAsync(
     }
 
     const { trainId, seatCount } = zodResult.data;
+
+    const train = await prisma.train.findUnique({
+      where: { id: trainId },
+    });
+
+    if (!train)
+      return next(new AppError(`Train with id ${trainId} not found`, 404));
 
     const userId = req.user?.id;
     if (!userId) return next(new AppError('User not logged in', 403));
@@ -73,5 +81,47 @@ export const getBookingStatus = catchAsync(
         },
       });
     }
+  }
+);
+
+export const getBookingByUser = catchAsync(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const userId = req.user?.id;
+    if (!userId) return next(new AppError('User not logged in', 403));
+
+    const bookings = await prisma.booking.findMany({
+      where: { userId },
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        count: bookings.length,
+        bookings,
+      },
+    });
+  }
+);
+
+export const getBookingById = catchAsync(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const bookingId = parseInt(req.params.id);
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+    });
+
+    if (!booking) return next(new AppError('Booking not found', 404));
+
+    if (booking.userId !== req.user?.id)
+      return next(
+        new AppError('You are unauthorized to perform this action', 403)
+      );
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        booking,
+      },
+    });
   }
 );
