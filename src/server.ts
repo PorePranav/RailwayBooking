@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+dotenv.config({ path: './.env' });
+
 import app from './app';
 
 process.on('uncaughtException', (err: Error) => {
@@ -6,8 +8,6 @@ process.on('uncaughtException', (err: Error) => {
   console.log(err);
   process.exit(1);
 });
-
-dotenv.config({ path: './.env' });
 
 const port: number = parseInt(process.env.PORT as string, 10) || 3000;
 
