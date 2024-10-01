@@ -34,7 +34,6 @@ const worker = new Worker(
             where: { id: bookingId },
             data: { status: 'BOOKED' },
           });
-          console.log(updatedBooking);
           return { success: true, booking: updatedBooking };
         }
       });

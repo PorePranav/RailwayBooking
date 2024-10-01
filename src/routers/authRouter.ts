@@ -3,8 +3,6 @@ import express from 'express';
 import {
   createAdminUser,
   loginController,
-  protect,
-  restrictTo,
   signupController,
 } from '../controllers/authController';
 
