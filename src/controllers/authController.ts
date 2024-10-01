@@ -98,6 +98,34 @@ export const loginController = catchAsync(
   }
 );
 
+export const createAdminUser = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const zodResult = signupSchema.safeParse(req.body);
+
+    if (!zodResult.success) {
+      const errors = zodResult.error.errors.map((err) => err.message);
+      throw new AppError(errors.join(', '), 400);
+    }
+
+    const { email, password } = zodResult.data;
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        role: 'ADMIN',
+      },
+    });
+
+    res.status(201).json({
+      status: 'success',
+      data: user,
+    });
+  }
+);
+
 export const protect = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const token = req.cookies.jwt;

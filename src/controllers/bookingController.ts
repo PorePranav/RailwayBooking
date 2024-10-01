@@ -50,8 +50,8 @@ export const bookSeat = catchAsync(
     res.status(201).json({
       status: 'pending',
       data: {
-        message: 'Booking request received and is being processed',
         jobId: job.id,
+        booking: newBooking,
       },
     });
   }
@@ -112,7 +112,7 @@ export const getBookingById = catchAsync(
 
     if (!booking) return next(new AppError('Booking not found', 404));
 
-    if (booking.userId !== req.user?.id)
+    if (req.user?.role === 'USER' && booking.userId !== req.user?.id)
       return next(
         new AppError('You are unauthorized to perform this action', 403)
       );

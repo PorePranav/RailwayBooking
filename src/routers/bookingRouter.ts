@@ -11,8 +11,8 @@ import {
 
 router.use(protect);
 router.get('/myBookings', getBookingByUser);
+router.get('/myBookings/:id', getBookingById);
 router.get('/status/:jobId', getBookingStatus);
-router.get('/:id', getBookingById);
 router.post('/', bookSeat);
 
 export default router;
